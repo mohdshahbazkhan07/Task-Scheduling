@@ -1,35 +1,78 @@
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class projectSheduler {
 
+    private final int MAX_DAYS = 5;
+
+    private List<project> bestSchedule = new ArrayList<>();
+
+    private double maxProfit = 0;
+
     public List<project> generateOptimalSchedule(List<project> projects) {
 
-        int maxDays = 5;
+        projects.sort((a, b) -> {
+            if (Double.compare(b.getExpectedRevenue(), a.getExpectedRevenue()) != 0) {
+                return Double.compare(b.getExpectedRevenue(), a.getExpectedRevenue());
+            } else {
+                return Integer.compare(a.getDeadline(), b.getDeadline());
+            }
+        });
 
-        // Sort by revenue descending
-        projects.sort((a, b) ->
-                Double.compare(b.getExpectedRevenue(), a.getExpectedRevenue()));
+        boolean[] usedDays = new boolean[MAX_DAYS];
 
-        project[] schedule = new project[maxDays];
+        List<project> currentSchedule = new ArrayList<>();
 
-        for (project project : projects) {
+        backtrack(projects, 0, usedDays, currentSchedule, 0);
 
-            // If deadline is more than working days, limit it
-            int deadline = Math.min(project.getDeadline(), maxDays);
+        return bestSchedule;
+    }
 
-            // Try to schedule on latest possible day
-            for (int day = deadline - 1; day >= 0; day--) {
+    private void backtrack(List<project> projects,
+                           int index,
+                           boolean[] usedDays,
+                           List<project> currentSchedule,
+                           double currentProfit) {
 
-                if (schedule[day] == null) {
-                    schedule[day] = project;
-                    break;
-                }
+        if (currentProfit > maxProfit) {
+
+            maxProfit = currentProfit;
+
+            bestSchedule = new ArrayList<>(currentSchedule);
+        }
+
+        if (index >= projects.size()) {
+            return;
+        }
+
+        project currentProject = projects.get(index);
+
+        int deadline = Math.min(currentProject.getDeadline(), MAX_DAYS);
+
+        for (int day = 0; day < deadline; day++) {
+
+            if (!usedDays[day]) {
+
+                usedDays[day] = true;
+
+                currentSchedule.add(currentProject);
+
+                backtrack(projects,
+                        index + 1,
+                        usedDays,
+                        currentSchedule,
+                        currentProfit + currentProject.getExpectedRevenue());
+
+                usedDays[day] = false;
+
+                currentSchedule.remove(currentSchedule.size() - 1);
             }
         }
 
-        return Arrays.stream(schedule)
-                .filter(Objects::nonNull)
-                .toList();
+        backtrack(projects,
+                index + 1,
+                usedDays,
+                currentSchedule,
+                currentProfit);
     }
-    }
-
+}
